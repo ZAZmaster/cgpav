@@ -51,7 +51,8 @@ static int convert_action(char *val)
 	return 6; 
     else if (strcasecmp(val, "addheaderjunk") == 0)
 	return 7; 
-
+    else if (strcasecmp(val, "addheaderjunk") == 0)
+	return 8; 
     else
 	return 0;
 }
