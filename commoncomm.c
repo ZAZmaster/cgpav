@@ -661,7 +661,7 @@ static void spam_action(MESSAGE *mess, int action)
 	
 	printf("\"\n");
 	break;
-	/* action addheaderjunk */
+    /* action addheaderjunk */
     case 7:
 	printf("%s ADDHEADER ", mess->seqnum);
 	/* add the header X-Junk-Score */
@@ -686,7 +686,76 @@ static void spam_action(MESSAGE *mess, int action)
 	    
 	printf("\"\n");
 	break;
-	/* action none */
+    /* action "addheaderalljunk" */
+    case 8:
+	if (mess->spam_score >= mess->spam_threshold)
+	    is_spam = 1;
+
+	printf("%s ADDHEADER ", mess->seqnum);
+
+	/* add the header X-Junk-Score */
+	if (is_spam) {
+	  printf("\"X-Junk-Score: %.1f [", mess->spam_score);
+	
+	  spam_level = (int)mess->spam_score;
+	  if (spam_level >= 1) {
+	      if (spam_level > 30) {
+	          spam_level = 30;
+	      }
+	      for (; spam_level > 0; spam_level--) {
+	          fputc('X', stdout);
+	      }
+	  }
+	  printf("]\\n");
+	
+	  /* print the test description */
+	  if (mess->spam_message) {
+	      printf("X-Junk-Tests: ");
+	      tr_message(mess->spam_message, strlen(mess->spam_message));
+	  }
+	}
+
+	/* add the header X-Spam-Status:  */
+	
+	if (is_spam)
+	    printf("\\nX-Spam-Status: Yes");
+	else
+	    printf("\"X-Spam-Status: No");
+	
+	printf(", hits=%.1f required=%.1f",
+	    mess->spam_score, mess->spam_threshold);
+	
+	/* print tests description */
+	if (mess->spam_message) {
+	    printf(" tests=");
+	    tr_message(mess->spam_message, strlen(mess->spam_message));
+	}
+
+	/* additional header */
+	if (is_spam && sett->spam_header && (strlen(sett->spam_header) > 3)) {
+	    printf("\\n");
+	    tr_message(sett->spam_header, strlen(sett->spam_header));
+	}
+	
+	/* add the header X-Spam-Level:  */
+	if (sett->spam_level_header) {
+    	    spam_level = (int)mess->spam_score;
+	    if (spam_level > 30)
+		spam_level = 30;
+    	    /* number of * chars indicates the spam_score */
+    	    if (spam_level >= 1) {
+		if (spam_level > 35)
+		    spam_level = 35;
+    		fputs("\\nX-Spam-Level: ", stdout);
+		for ( ; spam_level > 0; spam_level--)
+    		    fputc(sett->spam_level_char, stdout);
+	    }
+	    fputs("\\n", stdout);
+	}
+	
+	printf("\"\n");
+	break;
+    /* action none */
     case 0:
     default:
 	/* add the header indicating that the message was scanned */
@@ -785,13 +854,13 @@ int spam_scan_file(MESSAGE *mess)
 	/* all is OK */
 	case 0:
 	/* add the X-Spam-Status header indicating spam to all messages */
-	if (((sett->spam_action == 6) 
+	if (((sett->spam_action == 6 || sett->spam_action == 8) 
 	     /* the user hasn't defined any action */
 	     && (!mess->user_spam_action
 	     /* the user delegated spam action decision to admin */
 	     || (mess->user_spam_action == 1)))
 	    /* addheaderall user action */
-	    || (mess->user_spam_action == 6)) {
+	    || (mess->user_spam_action == 6 || mess->user_spam_action == 8)) {
 	    spam_action(mess, sett->spam_action);
 	    break;
 	}	
