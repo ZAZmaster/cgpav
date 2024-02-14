@@ -1,0 +1,37 @@
+# cgpav - AntiVirus And AntiSpam External Filter for CommuniGate Pro
+
+CC = @CC@
+CFLAGS = @CFLAGS@
+LDFLAGS = @LDFLAGS@
+INCLUDES = @INCLUDES@
+LIBS = @LIBS@
+DEFINES = @DEFINES@
+OBJS = @OBJS@
+
+CGPRO_HOME = @CGPRO_HOME@
+CGPRO_SETTINGS = @CGPRO_SETTINGS@
+
+ALL = cgpav
+
+all:	${ALL}
+
+clean:
+	rm -f cgpav *.o *~ *.core core config.cache
+
+.c.o:
+	${CC} -c ${CFLAGS} ${DEFINES} ${INCLUDES} $<
+
+cgpav:	${OBJS}
+	${CC} ${LDFLAGS} ${OBJS} -o cgpav ${LIBS} 
+
+install:
+	cp -f cgpav ${CGPRO_HOME}
+	if ! test -f ${CGPRO_SETTINGS}/cgpav.conf; then cp -f conf/cgpav.conf ${CGPRO_SETTINGS}; fi        
+
+
+uninstall:
+	rm -f ${CGPRO_HOME}/cgpav
+        
+distclean:
+	rm -f *.o core cgpav config.cache Makefile config.h config.status config.log >/dev/null
+        

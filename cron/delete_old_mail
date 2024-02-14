@@ -1,0 +1,199 @@
+#!/usr/bin/perl -w
+#
+# The old mail deletion script for CommuniGate Pro.
+#
+# This script deletes all mail older than the number of days specified below
+# in KEEP_FOR_DAYS variable. The time is compared against messages' INTERNALDATE
+# attribute which may be not the same as the date when the message was received,
+# so don't get confused if after the deletion you see messages older than expected.
+#
+
+# Place Perl module CLI.pm into this directory
+# You can download it here: www.stalker.com/CGPerl
+use lib("/opt/CommuniGate");
+
+use CLI;
+
+use constant KEEP_FOR_DAYS => 14;
+use constant SERVER_ADDRESS => "test.ru";
+# user that can read and delete mailboxes
+# for example, "Can Modify All Domains and Accounts Settings"
+use constant LOGIN => "spamadmin";
+use constant PASSWORD => "secretpassword";
+use constant SPAM_FOLDER => 'Spam';
+use constant TRASH_FOLDER => '&BCMENAQwBDsENQQ9BD0ESwQ1-';
+use constant SENT_FOLDER => '&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-';
+use constant DRAFT_FOLDER => '&BCcENQRABD0EPgQyBDgEOgQ4-';
+
+# run the script
+&main();
+
+
+sub getDeadlineDate() {
+    my @mNames = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
+    
+    my $deadlineTime = time() - KEEP_FOR_DAYS * 24 * 60 * 60;
+    my($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) 
+	= gmtime($deadlineTime);
+
+    return $mday.'-'.$mNames[$mon].'-'.(1900+$year);
+}
+
+sub processAllDomains() {
+    my($cli, $imap) = @_;
+    
+    my $DomainList = $cli->ListDomains()
+        || die "*** Can't get the domain list: ".$cli->getErrMessage.", quitting";
+    foreach my $domain (@$DomainList) {
+	processDomain($domain, $cli, $imap);
+    }
+}
+
+sub processDomain() {
+    my($domain, $cli, $imap) = @_;
+    
+    print "Domain: $domain\n";
+    my $accountList = $cli->ListAccounts($domain);
+    unless($accountList) {
+	print "*** Can't get accounts for $domain: ".$cli->getErrMessage."\n";
+	return;
+    }
+    foreach my $account (keys %$accountList) {
+	processAccount("$account\@$domain", $cli, $imap);
+    }
+}
+
+sub processAccount() {
+    my($account, $cli, $imap) = @_;
+
+    my $spamFolder = SPAM_FOLDER;
+    my $trashFolder = TRASH_FOLDER;
+    my $sentFolder = SENT_FOLDER;
+    my $draftFolder = DRAFT_FOLDER;
+    
+    
+#    print "Account: $account\n";
+    my $mailboxesList = $cli->ListMailboxes(accountName=>$account);
+    unless ($mailboxesList) {
+	print "*** Can't list mailboxes for $account:".$cli->getErrMessage."\n";
+	return;
+    }
+    foreach $mailbox (keys %$mailboxesList) {
+	my $data = @$mailboxesList{$mailbox};
+	if (ref $data eq 'HASH') {
+    	    my $nMessages = @$data{'Messages'};
+    	    if ((defined $nMessages) && ($nMessages eq 0)) {
+    		#print "skipping empty $account/$_\n";
+    		next;
+    	    }
+	}
+	
+
+	
+	if (($mailbox =~ /$spamFolder/i)
+	    || ($mailbox =~ /$trashFolder/)
+	    || ($mailbox =~ /$sentFolder/)
+	    || ($mailbox =~ /$draftFolder/)) {
+	    &processMailbox("$account/$mailbox", $imap);
+	} 
+    }
+}
+
+sub processMailbox() {
+    my($mailbox, $imap) = @_;
+    
+    my $delList = "";
+#print "Mailbox: $mailbox\n";
+
+    my $deadLineDate = &getDeadlineDate();
+
+    print $imap "x SELECT \"~$mailbox\"\n";
+    do {
+	$responseLine = <$imap>;
+    } until($responseLine =~/^x /);
+    unless($responseLine =~ /^x OK/) {
+	print "*** Can't select $mailbox: $responseLine.\n";
+	return;
+    }
+    print $imap "x SEARCH BEFORE $deadLineDate UNDELETED\n";
+    do {
+	$responseLine = <$imap>;
+	if($responseLine =~ /^\* SEARCH (.+)/) {
+    	    $delList.=' ' if($delList ne "");
+    	    $delList.=$1;
+	}
+    } until($responseLine =~/^x /);
+
+    if($delList ne "") {
+	$delList =~ s/ /\,/g;
+#	print "Mailbox: $mailbox\n";
+#	print "deletion list=$delList\n";
+#return;
+	print $imap "s STORE $delList +FLAGS (\\Deleted)\n";
+
+	do {
+	    $responseLine = <$imap>;
+	} until($responseLine =~/^s /);
+	unless($responseLine =~ /^s OK/) {
+	    print "*** Can't store flags for $mailbox messages: $responseLine.\n";
+	}
+	print $imap "c CLOSE\n";
+	do {
+	    $responseLine = <$imap>;
+	} until($responseLine =~/^c /);
+	unless($responseLine =~ /^c OK/) {
+	    print "*** Can't close $mailbox: $responseLine.\n";
+	}
+
+    }
+}
+
+sub main() {
+
+    my $deadLineDate = KEEP_FOR_DAYS;
+#    print "\nWARNING!!!\n";
+#    print "This script will delete messages received before $deadLineDate from the\n";
+#    print "Junk Mail mailbox in all acounts in all domains. Make sure you know what\n";
+#    print "you're doing. It's not too late to hit Ctrl-C.\n\n";
+
+#    print "CommuniGate Pro domain: ";
+#    my $Domain = <STDIN>;
+#    chomp $Domain;
+
+    my $CGServerAddress = SERVER_ADDRESS;
+
+    my $Login = LOGIN ."\@" . SERVER_ADDRESS;
+
+#    print "Postmaster's password: ";
+#    my $Password = <STDIN>;
+#    chomp $Password;
+
+    my $Password = PASSWORD;    
+
+    my $imap = new IO::Socket::INET( PeerAddr => $CGServerAddress,
+                                    PeerPort => 143
+                                  )
+	|| die "*** Can't connect to CGPro via IMAP.\n";
+
+    $imap->autoflush(1);
+    my $responseLine = <$imap>;
+    #print "$responseLine\n";
+
+    print $imap "x LOGIN $Login $Password\n";
+    do {
+	$responseLine = <$imap>;
+    } until($responseLine =~/^x /);
+    die "*** Can't login to CGPro IMAP: $responseLine.\n" unless ($responseLine =~ /^x OK/);
+
+    my $cli = new CGP::CLI( { PeerAddr => $CGServerAddress,
+                              PeerPort => 106,
+                              login => $Login,
+	                      password => $Password } )
+	|| die "*** Can't login to CGPro CLI: ".$CGP::ERR_STRING."\n";
+
+
+#    &processAccount("test\@test.ru", $cli, $imap);
+
+    &processAllDomains($cli, $imap);
+    exit;
+}

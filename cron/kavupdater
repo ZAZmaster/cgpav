@@ -1,0 +1,96 @@
+#! /bin/sh
+###############################################################################
+#
+#  kavupdater.sh: grab the latest virus information databases
+#
+###############################################################################
+KAV_PATH=/opt/AVP
+
+if [ ! -x /usr/bin/wget ]; then
+#    echo "$0: wget must be installed for the updater to run" >&2
+    exit 1
+fi
+
+DESC="Kaspersky Anti-Virus updater"
+
+#if [ -r ~.AVP/AvpUnix.ini ]; then
+#    INIFILE=~.AVP/AvpUnix.ini
+#else    
+    if [ -r /opt/AVP/AvpUnix.ini ]; then
+	INIFILE=$KAV_PATH/AvpUnix.ini
+    fi
+#fi
+
+if [ -r $INIFILE ]; then
+    eval `egrep '^[A-Za-z]*=' $INIFILE | perl -pe 's/\r//g'`
+fi
+
+#
+# Test network connection and download latest virus information db
+# 
+if [ -n "$UpdatePath" ]; then
+    DPARMS="$UpdatePath"
+else
+    if [ -n $1 ]
+    then
+#	echo "Warning! Add new param UpdatePath in your config file AvpUnix.ini"
+	exit 1
+    fi
+    DPARMS=$1
+fi
+
+#echo checking parameters $DPARMS
+ 
+checkurl -u=$DPARMS -t=5 -d
+
+if [ $? -eq 0 ]
+then
+#
+#example for checking file list
+#URLSLIST="urls_list"
+#REPORT="urlcheck.rpt"
+#checkurl -f=$URLSLIST -r=$REPORT -t=5 -d
+#if [ $? -eq 0 ]
+#then
+#    DPARMS=`cat $REPORT`
+#    echo "Run kavupdater"
+    $KAV_PATH/kavupdater -uik=$DPARMS -o -y -kb -ks
+    exitCode=$?
+
+    case $exitCode in
+     6)
+#      echo 6 - Found corrupted file and process stoped on it.
+      ;;
+     4)
+#      echo 4 - Found corrupted file. 
+      ;;
+     2)
+#      echo 2 - Process stoped on corrupted file.
+      ;;
+     1)
+#      echo 1 - Antiviral bases do not found.
+      ;;
+     0)
+#      echo 0 - Antiviral bases correctly loaded.
+      ;;
+     *)
+#      echo $exitCode
+#      echo I dont know this exit code!
+    esac
+else
+#    echo "$0: network connection error." >&2
+    exit 1
+fi
+
+if [ $exitCode -eq 0 ]
+then 
+    $KAV_PATH/kavdaemon -ka
+#    echo "Reload KAV daemon"
+    sleep 1
+#    echo "Stop KAV daemon"
+    sleep 10
+#    echo "Start KAV daemon"
+    $KAV_PATH/kavdaemon -I0 -Y
+fi
+
+exit 0

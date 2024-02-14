@@ -1,0 +1,7 @@
+Change SpamAssassin MySQL settings and Rules
+---------------------------------------------
+
+1. Copy this dir to squirrelmail plugins dir and run conf.pl
+
+2. Change parameters in config.php
+

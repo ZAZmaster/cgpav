@@ -1,0 +1,662 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head><title>Clamav, Касперский (AVP), Sophos, Trend Micro, Dr.Web антивирусный и SpamAssassin антиспамовый фильтр для CommuniGate Pro</title>
+<meta http-equiv="Content-type" content="text/html; charset=koi8-r">
+<meta name="description" content="Антивирусный и антиспамовый фильтр для почтового сервера CommuniGate Pro">
+<meta name="keywords" content="clamav,trend micro,avp,sophos,trend micro,dr.web,drweb,spamassassin,spam,virus,linux,communigate,sendmail,mail,kaspersky,debian,redhat,freebsd,postfix,qmail,filter,mcafee,antivirus,scan,check,касперский,авп,антивирус,вирус,софос,спам,анти">
+
+</head>
+<body bgcolor="#d9e0e6" text="#000000" id="all" leftmargin="10" topmargin="10" marginwidth="10" marginheight="10" link="#000020" vlink="#000020" alink="#000020">
+
+<!-- content table -->
+<table bgcolor="#FFFFFF" width="100%" cellpadding="10" cellspacing="0" border="0">
+<tr>
+  <td>
+	<!-- Insert content below -->
+		<font face="Verdana,Arial,Helvetica,sans-serif" size="2">
+
+
+
+<p>
+<b>Описание</b>
+<p>
+  Бесплатный Clamav, Kaspersky Anti-Virus (AVP), Sophos Anti-Virus,
+  Trend Micro, Dr.Web и SpamAssassin
+  внешний фильтр (плагин) для почтового сервера CommuniGate Pro.
+<p>  
+  Используется для сканирования всех сообщений, которые проходят
+  через почтовый сервер CommuniGate Pro
+  <a href="http://www.stalker.com"><b>www.stalker.com</b></a>
+<p>   
+  Clamav - бесплатный антивирус:
+  <a href="http://www.clamav.net"><b>www.clamav.net</b><br>
+  Касперский антивирус: 
+  <a href="http://www.avp.ru"><b>www.avp.ru</b></a><br>
+  Sophos Anti-Virus: 
+  <a href="http://www.sophos.com"><b>www.sophos.com</b></a>
+  Демон Sophie для Sophos 
+  <a href="http://www.vanja.com"><b>www.vanja.com</b></a><br>
+  Trend Micro Anti-Virus: 
+  <a href="http://www.antivirus.com"><b>www.antivirus.com</b></a>
+  Демон Trophie для Trend Micro 
+  <a href="http://www.vanja.com"><b>www.vanja.com</b></a><br>
+  Dr.Web 
+  <a href="http://www.drweb.ru"><b>www.drweb.ru</b></a><br>
+  
+  SpamAssassin Anti-Spam:
+  <a href="http://www.spamassassin.org"><b>www.spamassassin.org</b></a>
+<p>  
+  Основной сайт для cgpav: 
+  <a href="http://program.farit.ru"><b>program.farit.ru</b></a><br>
+  Первые версии cgpav были созданы и поддерживаются 
+  Дамиром Бикмухаметовым: 
+  <a href="ftp://bfm.bashnet.ru/CGPAV"><b>ftp://bfm.bashnet.ru/CGPAV</b></a>
+
+<p>  
+<b>Как программа работает</b>
+<p>
+  Программа читает запросы со своего стандартного ввода в форме:<br>
+	seqNum FILE fileName<br>
+  например:<br>
+  1111 FILE Queue/111111.msg
+<p>
+  После этого она разбирает эту строку на части и добавляет новый элемент
+  в список-структуру, содержащий seqnum и filename. Программа создает
+  дочерний процесс для каждого элемента из списка, который посылает
+  запрос, включающий полное имя файла, составленное из 
+  cgpro_home + / + filename, антивирусному демону и ждет результатов
+  сканирования.<br>
+  Количество дочерних процессов зависит от количества Enqueuer processors в
+  настройках CommuniGate Pro settings и значения max_childs 
+  в конфигурационном файле <a href="cgpav-conf.txt">cgpav.conf</a>. 
+  Желательно, чтобы они были равны и больше единицы. 5 - нормальное значение.
+<p>
+  В зависимости от результата сканирования программа посылает 
+  CommuniGate Pro различные строки ответа.
+<p>
+  Когда сообщение чистое:<br>
+  seqNum OK<br>
+  Также она отвечает OK во всех &quot;сложных&quot; ситуациях:
+  таймаут при сканировании, анти-вирусный демон не отвечает и т.д.
+<p>
+  Когда сообщение заражено вирусом, программа печатает что-то типа:<br>
+  seqNum ERROR "WARNING! Your message is infected by VIRUS: I-Worm.Sircam.c"<br>        
+  Когде сообщение распознано как спам, то программа выдает:<br>
+  seqNum ERROR "You are a known spammer.\\nYour message was rejected"<br> 
+  Когда CommuniGate Pro получает такой ответ, то создает сообщение о недоставке,
+  включающее этот текст.                 
+<p>
+  Она также может просто тихо удалять сообщения без доставки, выдав  
+  заголовок <b>DISCARD</b> или добавлять специальные заголовки с помощью
+  команды <b>ADDHEADER</b> - когда обнаружены вирус или спам, позволяя
+  конечному пользователю фильтровать такие сообщения в своей собственной
+  почтовой программе. Конечно, нормальные пользователи не захотят получать
+  вирусы, так что infected_action будет reject или discard,
+  а вот в спам программа может записать и &quot;хорошие&quot; сообщения,  
+  так что лучше оставить окончательное решение самому пользователю,
+  spam_action как addheader. Однако, могут быть проблемы с некоторыми
+  глупыми почтовыми клиентами типа Microsoft Outlook Express, который вроде
+  не умеет фильтровать по заголовкам. В таком случае пользователь может
+  просто создать правило, чтобы все помеченные вышеупомянутым заголовком
+  складывались в определенную папку. Её можно будет посмотреть с помощью
+  IMAP или через почтовый web-интерфейс.
+
+
+<p>
+  Также программа может посылать дополнительные сообщения с уведомлениями
+  как отправителю зараженного письма, так и получателям, записывая
+  их в директорию Submitted CommuniGate Pro. Модуль PIPE
+  CommuniGate Pro периодически сканирует эту директорию и отправляет все
+  все сообщения из нее. <br>
+  Вы можете включить текст на разных языках (в том числе на русском) в 
+  уведомления, пометив эти языки в конфигурационном файле.<br>
+  Также программа может отсылать уведомления на адрес постмастера всего
+  почтового сервера и постмастерам виртуальных доменов.  
+<p>
+  Если программа обнаружила вирус, то она записывает имя вируса,
+   e-mailы отправителя и получателей в лог-файл.  
+  
+<p>
+  Когда в программе происходят временные ошибки, то она отвечает вроде 
+  этого:<br>
+  seqNum REJECTED "Antiviral filter unavailable. Will try later"<br>
+  Такая ситуация может произойти, например, если скрипт для обновления
+  вирусных баз передернул антивирусный демон.<br>
+  Само сообщение не отвергается, оно остается в очереди CommuniGate Pro 
+  для дальнейшего сканирования.
+<p>
+  Если количество последовательных REJECTED превышает значение max_errors,
+  заданное в конфигурационном файле, то программа начинает отвечать ОК,
+  пока не возобновится нормальное функционирование антивирусного демона. 
+<p>
+  Для сканирования сообщений на спам используется стандартный демон
+  spamd из дистрибутива SpamAssassin. По умолчанию добавляется заголовок 
+  X-Spam-Status в сообщение при превышении очков, заданных required_hits, 
+  позволяя его потом отфильтровать в клиентском
+  почтовом клиенте или с помощью правила в CommuniGate Pro переправить
+  его в отдельную папку.
+<p>
+  Кроме того можно определить действие при достижении extra_spam_score,
+  например, тихо удалять сообщение(discard). Обычно его устанавливают
+  достаточно большим, чтобы отсекался явный спам, не засоряя сервер. 
+  Это полезно, т.к. большинство пользователей никак не используют 
+  вышеупомянутый заголовок.    
+  
+<p>
+  Пример web-интерфейса на php для изменения настроек антиспамового
+  фильтра прилагается. Пользователи могут менять спам хиты, выбирать
+  различные действия, отключать некоторые тесты. Также они могут создавать
+  правило для сохранения спам в специальную папку одним кликом мышки.
+
+<p>  
+<b>Установка</b>
+<p>
+  Распакуйте исходники:<br> 
+        gzip -cd cgpavXXX.tar.gz | tar xvv-    
+<p>
+  Запустите ./configure
+<p>
+  Вы можете изменить параметры, используя опции:<br>          
+  --with-antivirus=av_name      Имя антивирусного демона: [avp OR sophos OR clamav OR trophie OR drweb OR no]<br>
+  --with-spamassassin=yes/no    Использовать SpamAssassin или нет<br>
+  Профили пользователей для SpamAssassin могут храниться в базе:<br>    
+  --with-mysql=yes/DIR 		MySQL, укажите корневую директорию<br>
+  --with-pgsql=yes/DIR          PostgreSQL, укажите корневую директорию<br>
+  Программа будет пытаться найти headerы и libы сама.<br>
+  --with-cgpro-home=PATH        путь к корневой директории CommuniGate Pro 
+				[/var/CommuniGate]<br>
+  --with-cgpro-settings=PATH    путь к директории Settings CommuniGate Pro 
+				[cgpro-home/Settings]<br>
+  --with-cgpro-submitted=PATH   путь к директории Submitted CommuniGate Pro 
+				[cgpro-home/Submitted]<br> 
+
+<p>
+ Например:<br>
+        ./configure --with-antivirus=clamav --with-cgpro_dir=/var/CommuniGate
+<p>  
+    Вы можете опустить эти опции, программа выведет меню для выбора и
+    попытается определить директории сама.
+
+<p>  
+  Затем:<br>
+        make<br>
+        make install    
+<p>  
+  Исполняемый файл cgpav будет скопирован в корневую директорию cgpro_dir,
+  упомянутую выше, и конфигурационный файл cgpav.conf - в директорию
+  Settings внутри этой корневой директории.
+<p>  
+  Конечно, вы можете не делать make install, а скопировать эти файлы 
+  куда-нибудь в другое место самостоятельно.
+  
+<p>  
+<b>Установка антивирусного демона и SpamAssassin</b>
+<p>
+  Скачайте тестовый вирус с сайта
+  <a href="http://www.eicar.org"><b>www.eicar.org</b></a>    
+<p>
+  Запустите Install в дистрибутивах kavdaemon или sophos, следуйте
+  инструкциям.   
+<p>
+  <b>CLAMAV:</b>
+<p>
+  Некоторые дистрибутивы Linux (.deb и .rpm пакеты) и другие Unix 
+  уже содержат clamav. Но его всегда можно скачать
+  с <a href="http://clamav.sourceforge.net"><b>clamav.sourceforge.net</b></a>,
+  затем запустить ./configure, make, make install.<br>
+  Отредактируйте clamav.conf, мы будем использовать только Local Socket.
+  Проверьте, что значение LocalSocket соответствует значению clamd_socket
+  в cgpav.conf.<br>
+  Также clamav должен запускаться под пользователем root или другим
+  пользователем в группе 'mail', чтобы иметь доступ к директориям
+  CommuniGate Pro:<br>
+  User root<br>
+  Запустите демон clamd и проверьте с помощью clamdscan тестовый вирус.
+
+<p>  
+  <b>КАСПЕРСКИЙ (kavdaemon):</b>
+<p>  
+  Добавьте путь к директории Queue Communigate Pro в параметры стартового файла
+  kavdaemon (/etc/init.d/kavdaemon):<br> 
+  DPARMS="-I0 -Y /var/CommuniGate/Queue"<br>
+  Это позволит AVP сканировать данную директорию на вирусы. 
+<p>  
+  Или просто добавьте этот путь в AvpUnix.ini или defUnix.prf
+  [Object]->Names со значком звездочки впереди:<br>
+  Names=*/home;*/var/CommuniGate/Queue<br>
+  (Не забудьте про звездочку *, чтобы активизировать этот путь).
+<p>  
+  Запустите kavscanner, чтобы он нашел тестовый вирус.
+<p>
+  <b>SOPHOS:</b>
+<p>  
+  Создайте группу sweep и пользователя sweep.
+<p>  
+  Инсталлятор может не найти некоторые переменные окружения вроде MANPATH, 
+  установите их:<br>
+        MANPATH=&quot;$MANPATH:/usr/local/man&quot;<br>
+        export MANPATH     
+<p>
+  Создайте симлинк:<br>
+        ln -s /usr/local/lib/libsavi.so.2 /usr/local/lib/libsavi.so
+<p>
+  Запустите sweep, чтобы он нашел тестовый вирус.
+<p>  
+    Скачайте и установите демон sophie.
+  Согласно инструкциям на время написания, запустите ./configure, 
+  скопируйте sophie.cfg и sophie.savi в /etc и отредактируйте их. 
+  sophie.savi.individual - неплохая основа для sophie.savi
+  <br>
+  Нужно сменить user и group в sophie.cfg на root или на пользователя,
+  под которым работает CommuniGate Pro.
+<p>
+  Вы можете скомпилить программу scan_file.c в sample_appls/sock,
+  чтобы протестировать демон.
+  
+<p>
+    <b>TREND MICRO:</b>
+<p>
+    Положите libvsapi.so и файл с паттернами вирусов в директорию /etc/iscan. 
+    Триальные версии можно скачать с 
+    <a href="http://www.antivirus.org"><b>www.antivirus.org</b></a> <br>
+    Скачайте демон Trophie 
+    <a href="http://www.vanja.com"><b>www.vanja.com</b></a><br>
+    ./configure --with-user=root --with-group=root<br>
+<p>
+    <b>DR.WEB:</b>
+<p>
+    Установите имя сокета в /etc/drweb/drweb32.ini:<br>
+    /var/run/drwebd.socket<br>
+    Проверьте функционировани drwebd с помощью программы drwebdc.
+
+<p> 
+  <b>SPAMASSASSIN:</b>    
+<p>
+  Скачайте SpamAssassin отсюда: 
+  <a href="http://www.spamassassin.org"><b>www.spamassassin.org</b></a>.      
+<p>
+  Скомпилируйте:<br>
+  perl Makefile.PL<br>
+  make<br>
+  make test<br>
+  make install
+<p>
+  Или скачайте rpm или deb пакеты для вашего дистрибутива.
+<p>
+  Протестируйте работоспособность:<br>    
+  spamassassin -t < sample-spam.txt > /tmp/sample-spam.txt<br>
+  spamassassin -t < sample-nonspam.txt > /tmp/sample-nonspam.txt    
+<p>
+  Проверьте, что /tmp/sample-spam.txt помечен как спам. 
+
+<p>  
+<b>Конфигурирование</b>
+<p>
+  Конфигурационный файл <a href="cgpav-conf.txt"><b>cgpav.conf</b></a> 
+  должен располагаться в директориях /var/CommuniGate/Settings,
+  /var/CommuniGate или /etc.<br>
+  Про запуске программа просматривает сначала директорию /var/CommuniGate/Settings, 
+  потом /var/CommuniGate и /etc, она будет использовать первый найденный cgpav.conf.
+  Вы можете изменить это, отредактировав cfg.c или добавив опцию
+  -f при запуске cgpav:<br>
+  ./cgpav -f /var/elsewhere/cgpav.conf
+<p>    
+  Если программа не сможет найти cgpav.conf, или если вы закоментируете
+  какой-нибудь обязательный параметр в нем, то программа будет 
+  использовать значения по умолчанию из cfg.h
+<p>  
+  Большинство значений из cgpav.conf являются достаточными для
+  установок cgpro и антивирусов по умолчанию. Нужно будет установить пароль
+  для доступа к базе данных, если вы будете пользоваться профилями в базе.
+<p>
+  Чтобы включить русский язык в уведомлениях, пометьте<br>
+  charset = koi8-r<br>
+  russian = true 
+  
+<p>  
+  Для переменных-переключателей выбирайте false или true, оставьте пустым<br>
+  own_text =<br>
+  если вы не хотите дополнительного текста внизу уведомлений.
+
+<p>    
+<b>Тестирование</b>
+<p>
+  Вы можете получить больше отладочной информации, если сконфигурируете
+  cgpav в режиме DEBUG:<br>
+  CFLAGS="-g -DDEBUG" ./configure<br>
+  В этом режиме cgpav работает в однопроцессном режиме.<br>
+  Не забудьте потом переконфигурировать его обратно:<br>
+  ./configure
+  
+<p>
+  Скопируйте тестовый вирус (например, eicar.com)
+  в директорию /var/CommuniGate
+<p>   
+  Запустите фильтр из командной строки ./cgpav<br>
+  Потом введите:<br>
+	1 FILE eicar.com
+<p>  
+  Если вы видите что-то типа<br> 
+	1 ERROR &quot;WARNING! Your message was infected by VIRUS: 
+	EICAR-AV-Test&quot;<br>
+  то cgpav работает нормально.
+<p>  
+  Если вы видите только лишь<br>
+	1 OK<br>
+  то программа не находит вирусов. 
+  
+<p>  
+  Касперский антивирус:<br>
+  Сначала посмотрите в лог файл kavdaemon (/root/kavscan.rpt).
+  Если вы видите, что kavdaemon обнаружил вирус, то вы можете раскомментировать
+  строку с ответом демона в функции avp_scan_file в файле avpcomm.c.<br>
+  В Linux ответ: 0x134 (octal) для инфицированных и 0x130 для чистых.
+  В Sparc Solaris: 0x1340000 и 0x1300000
+  
+<p>    
+<b>Установка в CommuniGate Pro</b>
+<p>
+  Прочитайте документацию с их сайта: 
+  <a href="http://www.stalker.com"><b>www.stalker.com</b></a>
+  
+<p>  
+  SETTINGS->Rules<br>  
+  Priority Name<br>
+  10       virus scan
+<p>  
+  Нажмите на Edit<br>
+  Data<br>
+  Message Size greater than 1024
+<p>  
+  Action<br>  
+  ExternalFilter     		
+<p>
+  Перейдите в Settings->General->Helpers<br>
+  и в меню Content Filtering добавьте путь к программе
+<p>  
+  Пометьте   Content Filtering<br>
+  Program Path: cgpav<br>
+  если cgpav расположена в корневой директории CommuniGate Pro или введите 
+  абсолютный путь.
+<p>
+  Оставьте параметры &quot;Time-out&quot; и
+  &quot;Auto-Restart в состоянии disabled.<br>
+  Изменяйте их только если cgpav падает. Вообще-то, cgpav сделан так,
+  что основной процесс сканирования происходит в дочерних процессах,
+  и их падение не должно вызывать падения основного процесса.
+
+<p>
+<b>Конфигурирование SpamAssassin</b>
+<p>    
+  Проверки SpamAssassin по умолчанию выключены. Вы должны быть очень
+  осторожны, потому что он может отвергать некоторые полезные сообщения.
+  Это не пятиминутное дело!
+<p>
+  После установки SpamAssassin вы должны запустить какую-нибудь быструю
+  базу данных. MySQL <a href="http://www.mysql.com">www.mysql.com</a> 
+  - наилучший выбор, кроме того поддерживается PostgreSQL.
+  Нужно будет установить libmysqlclient-dev или postgresql-dev пакеты,
+  а также Perl DBI и DBD модули.
+  Далее рассматривается использование MySQL, вы должны настроить  
+  конфигурацию для другой базы данных соответствующим образом.    
+<p>
+  В базе мы будем хранить собственные настройки для каждого пользователя.<br>
+  Зайдите в mysql как root:<br>
+  mysql -u root -p<br>
+  и создайте новую базу, например, под названием spamassassin:<br>
+  mysql>CREATE DATABASE spamassassin;<br>
+  После этого создайте пользователя и дайте ему привилегии, например, 
+  spamassassin:<br> 
+  mysql>GRANT ALL ON spamassassin.* TO spamassassin@localhost IDENTIFIED
+  BY 'secretpassword'; <br>
+  Конечно, вместо secretpassword введите какой-нибудь пароль.<br>
+  Отсоединитесь от базы.   
+<p>
+  Создайте в базе таблицу userpref:<br>
+  CREATE TABLE userpref (<br>
+  username varchar(100) NOT NULL,<br>
+  preference varchar(30) NOT NULL,<br>
+  value varchar(100) NOT NULL,<br>
+  prefid int(11) NOT NULL auto_increment,<br>
+  PRIMARY KEY (prefid),<br>
+  INDEX (username)<br>
+  ) TYPE=MyISAM;
+<p>
+  Вы можете найти файл userpref.sql в директории spam/sql.<br>  
+  Запустите из командной строки:<br>
+  mysql -u spamassassin -p spamassassin &lt; userpref.sql
+<p>
+  Скачайте и установите Perl модули DBI и DBD для вашей базы данных
+  <a href="http://search.cpan.org">search.cpan.org</a>. 
+  Или установите их из готовых пакетов или rpm. 
+<p>
+  Перейдите в конфигурационную директорию SpamAssassin: 
+  /etc/mail/spamassassin или
+  /etc/spamassassin. Добавьте в local.cf следующие строки:<br>
+  <table border="0">
+  <tr><td>user_scores_dsn</td><td>DBI:mysql:spamassassin:localhost</td></tr>
+  <tr><td>user_scores_sql_username</td><td>spamassassin</td></tr>
+  <tr><td>user_scores_sql_password</td><td>secretpassword</td></tr>
+  </table>
+  Параметр user_scores_dsn должен быть в такой форме:<br>
+  user_scores_dsn                 DBI:driver:database:hostname[:port]<br>
+  Измените его соответственно для своей базы данных.
+<p>
+  Если вы будете использовать spamd на том же компьютере, то соединение
+  лучше проводить через unix сокет, если на удалённом, то придётся 
+  использовать tcp сокет. Установите соответствующее значение в cgpav.conf:<br>
+  spamassassin_socket_type = unix<br>
+<p>
+  Если вы используете unix сокет, то в опциях запуска spamd поставьте примерно
+  следующее:<br>
+  -d -m 10 -x -q -u mail --socketpath=/var/run/spam<br>
+  Если же tcp сокет, то:<br>
+  -d -m 10 -x -q -u mail -i spamd.server.ip -p 783 -A your.mail.server.ip<br>
+  Где spamd.server.ip - IP-адрес компьютера, на котором слушает spamd,
+  your.mail.server.ip - IP-адрес вашего почтового сервера, с которого он
+  соединяется со spamd сервером. Можно через запятую поставить несколько IP. 
+<p>
+  Проверьте функционирование spamd с помощью программы spamc:<br>
+  spamc -U /var/run/spam < sample-spam.txt > sample-spam.log<br>
+  Вы можете добавить в опции spamd ключик -D (debug), и сможете найти
+  более детальную информация в логах.           
+<p>
+  Создайте файл 50_whitelist.cf в конфигурационной директории SpamAssassin
+  и добавьте домены своих соседей провайдеров, чтобы иметь с ними меньше
+  проблем:<br>
+  whitelist_from  *@goodprovider.ru
+<p>
+  Распечатайте файл с очками по умолчанию всех правил SpamAssassin, 
+  ищите их здесь:
+  <a href="http://www.spamassassin.org">www.spamassassin.org</a><br>
+  Вы можете настраивать эти очки по своему вкусу или даже выключить 
+  некоторые, добавив их с 0 в local.cf или любой *.cf файл в 
+  конфигурационной директории SpamAssassin. Например:<br>
+  # Undisclosed-recipients<br>
+  score UNDISC_RECIPS 5.0<br>
+<p>
+  Вы также можете создать файл 50_blacklist.cf для добавления 
+  известных спаммерских доменов:<br>
+  blacklist_from *@flowgo.com<br>
+  Вы можете найти хороший blacklist здесь: 
+  <a href="http://www.stearns.org/sa-blacklist/">www.stearns.org/sa-blacklist/</a>
+
+<p>
+  Также вы можете создать свои собственные правила, используя
+  регулярные выражения.
+  Замечание: очки могут быть и отрицательными.
+  Файл <a href="../spam/25_head_tests_ru.cf.txt">25_head_tests_ru.cf:</a><br>  
+  <table border="0">
+  <tr>
+    <td>header RU_WIN_CHARSET</td><td>ALL =~ /windows-1251/i</td>
+  </tr>
+  <tr>
+    <td>describe RU_WIN_CHARSET</td><td>ALL: Windows-1251 charset</td>
+  </tr>
+  <tr>        
+    <td>score RU_WIN_CHARSET</td><td>0.5</td>
+  </tr>
+  </table>      
+<p>
+  Файл <a href="../spam/25_body_tests_ru.cf.txt">25_body_tests_ru.cf:</a><br>  
+  <table border="0">
+  <tr>
+    <td>body RU_ONE_TIME_ACTION</td><td>/разовая[\s]+[акция|рассылка]/i</td>
+  </tr>
+  <tr>
+    <td>describe RU_ONE_TIME_ACTION</td><td>One time action</td>
+  </tr>
+  <tr>        
+    <td>score RU_ONE_TIME_ACTION</td><td>1.8</td>
+  </tr>
+  </table>      
+<p>
+  Чтобы реализовать регистронезависимые регулярные выражения (ключик i),
+  вы должны вставить в модули SpamAssassin EvalTests.pm и PerMsgStatus.pm 
+  установку локали KOI8-R (обычно перед первым use):<br>
+  use locale;<br>
+  use POSIX 'locale_h';<br>
+  setlocale(LC_ALL, "ru_RU.KOI8-R");<br>
+  Вы должны будете патчить их при переустановке SpamAssassin.
+<p>
+  Установите web-интерфейс для того, чтобы пользователи могли сами
+  настраивать required_hits, черный и белый списки. Пример для php 
+  доступен в директории spam/www/php. В этом примере происходит
+  авторизация через 106 порт CommuniGate Pro.
+  Вы можете использовать любое другое средство, или интерфейс к базе 
+  данных. <br> 
+  Замечание: вы должны всегда вставлять полный e-mail адрес пользователя
+  в поле username, а не его имя. 
+  ivan@domain.ru - правильно, ivan - неправильно.
+
+
+<p>
+<b>Известные проблемы</b>
+<p>    
+  Если вы включаете-выключаете антивирус в Content Filtering в
+  CommuniGate Pro   Settings->Helper, старый процесс cgpav
+  может оставаться zombie.
+<p>  
+  Вы можете перегрузить CommuniGate, чтобы убить их.
+  
+<p>  
+<b>Лицензия</b>
+<p>
+  Лицензия свободная - GPL.
+<p>  
+  Однако вы должны приобрести собственную лицензию для Kaspersky Anti-Virus или
+  Sophos Anti-Virus.
+<p>  
+  Если вы используете демон от Касперского, фильтр не будет работать без
+  ключевого файла. Вы можете заполнить анкету и получить триальный ключик,
+  связавшись с ними.<br>
+  Sophos антивирус можно скачать с их сайта.
+  
+<p>    
+<b>Советы по Касперскому</b>
+<p>
+  Снова, добавьте путь к директории Queue CommuniGate в стартовый скрипт 
+  (/etc/init.d/kavdaemon) и в скрипт для обновлений
+  (/opt/AVP/kavupdater.sh):<br>
+	DPARMS=&quot;-I0 -Y /var/CommuniGate/Queue&quot;<br>
+  Или просто добавьте путь в AvpUnix.ini [Object]->Names с звездочкой *  
+  впереди.  
+<p>  
+  Добавьте строку UpdatePath в AvpUnix.ini для скачивания вирусных обновлений
+  (может запускаться по cron):<br>
+	UpdatePath=ftp://ftp.kaspersky.ru/updates/<br>
+  Или используйте другой ftp сервер из файла Updates.lst.	
+<p>
+  Не расходуйте зазря ресурсы, меняя -I0 (только сканирование на вирусы)
+  на -I2 (лечение вирусов). Файлы в сообщениях запакованы MIME и 
+  антивирус не сможет вылечить их. Также CommuniGate не любит, когда кто-то
+  изменяет размер посланных сообщений.
+<p>
+  Измените следующие установки в defUnix.prf:
+<p>  
+  [Options]<br>
+  ParallelScan=Yes
+<p>  
+  [Report]<br>
+  Report=No    
+<p>
+  Включайте лог только на стадии тестирования.
+<p>  
+<b>Советы по Sophos</b>
+<p>
+  Я включил скрипт для обновления вирусных баз sophosupdate.pl 
+  в демон sophie. Возможно, вам придется скачать отсутствующие Perl
+  модули, чтобы запустить его, вероятнее всего,
+  Archive::Zip. Поищите их на сайте вашего дистрибутива или
+  на <a href="http://search.cpan.org"><b>search.cpan.org</b></a>
+
+<p>  
+<b>Советы по SpamAssassin</b>
+<p>
+  В директории cron вы можете найти программу delete_old_mail, 
+  с помощью которой можно автоматически удалять сообщения больше
+  какого-то периода из папки Spam, куда складываются спамовые сообщения.
+  Модуль CLI.pm для неё находится здесь: 
+  <a href="http://www.stalker.com/CGPerl">www.stalker.com/CGPerl</a>
+  
+<p>        
+<b>Как проверять сообщения для других серверов</b>
+<p>
+  Например, у вас есть сервер mail.domain.ru с установленным
+  антивирусным фильтром и вы хотите защитить другой почтовый сервер
+  alpha.domain.ru.
+<p>  
+  В Settings->Router добавьте строку <br>
+  Relay: alpha.domain.ru = alpha.domain.ru@alpha.domain.ru.25.smtp
+<p>
+  В DNS записи добавьте MX строки:
+<p>
+
+ <table border="0" cellpadding="7">
+ <tr>
+  <td>alpha</td><td>IN</td><td>MX</td><td>10</td><td>mail.domain.ru.</td>
+ </tr><tr>  
+  <td>&nbsp;</td><td>IN</td><td>MX</td><td>20</td><td>alpha.domain.ru.</td>
+ </tr>
+ </table> 
+
+<p>			
+<b>Логи</b>
+<p>  
+  Программа сохраняет информацию о найденных вирусах,
+  используя стандартный syslog через local0 facility.<br>
+  Вы можете заметить строчки типа в syslog:<br>
+	Jan  1 00:00:11 mail cgpav: Virus: I-Worm.BadtransII  
+	From: anna@mail.host.ru  To: antivirus@bashnet.ru
+<p>  
+  Вы можете изменить log_facility в cgpav.conf, 
+  чтобы использовать другой facility (mail, local0 - local7)
+<p>  
+  Если вы хотите перенаправить сообщения о вирусах в другой файл,
+  отредактируйте файл /etc/syslog.conf<br>
+	local0.*			-/var/log/virus.log
+
+<p>
+<b>Авторы</b>
+<p>  
+  Программирование: Damir Bikmukhametov и Farit Nabiullin.<br> 
+  Solaris патч для AVP: Vitaly с afn.ru<br>
+  Sophie демон: Vanja Hrustic 
+  <a href="http://www.vanja.com"><b>www.vanja.com</b></a><br>
+  UUdeview библиотека: Frank Pilhofer 
+  <a href="http://www.fpx.de"><b>www.fpx.de</b></a>   
+  SpamAssassin: Jastin Mason
+  <a href="http://www.spamassassin.org"><b>www.spamassassin.org</b></a><br>
+  spamd: Craig R Hughes      
+   
+	<!-- /content -->
+  </td>
+</tr>
+</table>
+<!-- /content area table -->
+</center>
+  
+   
+</body>  
+</html>
+    

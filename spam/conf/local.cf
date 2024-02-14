@@ -1,0 +1,11 @@
+# Add your own customisations to this file.  See 'man Mail::SpamAssassin::Conf'
+# for details of what can be tweaked.
+# 
+
+user_scores_dsn                 DBI:mysql:spamassassin:localhost
+user_scores_sql_username        spamassassin
+user_scores_sql_password        secret
+
+
+
+

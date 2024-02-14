@@ -1,0 +1,442 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(cgpav.c)
+AC_CONFIG_HEADER(config.h)
+
+dnl Checks for programs.
+CFLAGS="-Wall -O2  $CFLAGS"
+LDFLAGS=""
+INCLUDES="-I."
+OBJS="cgpav.o xsignal.o email.o cfg.o util.o commoncomm.o"
+UNMIME=" fptools.o uulib.o uucheck.o uunconc.o uuutil.o uuscan.o uustring.o"
+OS=""
+
+dnl Clean olders
+rm -f cgpav *.o
+
+AC_PROG_CC
+
+dnl AC_CANONICAL_HOST
+
+case $host in
+	*-linux*)
+	AC_DEFINE(LINUX)        
+	;;
+	*-solaris*)
+	AC_DEFINE(SOLARIS)
+	OS="SOLARIS"
+	;;
+	*-hpux10.20*)
+	AC_DEFINE(HPUX1020)
+	;;
+esac
+
+dnl Checks for libraries.
+
+dnl Checks for header files.
+AC_HEADER_DIRENT
+AC_HEADER_STDC
+AC_HEADER_SYS_WAIT
+AC_CHECK_HEADERS(time.h sys/time.h syslog.h unistd.h netinet/in.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_UID_T
+AC_TYPE_PID_T
+AC_STRUCT_TM
+
+
+dnl Checks for library functions.
+AC_FUNC_MEMCMP
+AC_TYPE_SIGNAL
+AC_CHECK_FUNCS(gettimeofday)
+AC_CHECK_FUNCS(bind,,LIBS="$LIBS -lsocket")
+AC_CHECK_FUNCS(inet_ntoa,,LIBS="$LIBS -lnsl")
+
+
+AC_CACHE_CHECK([for in_addr_t],
+        inaddrt, [
+                AC_TRY_COMPILE([#include <sys/types.h>
+#include <netinet/in.h>],
+                        [in_addr_t foo; return 0;],
+                                        [inaddrt=yes],
+                                        [inaddrt=no]),
+        ])
+if test $inaddrt = no ; then
+  AC_CHECK_TYPE(in_addr_t, unsigned long)
+fi
+
+
+dnl Anti-Virus daemon to use
+AC_ARG_WITH(antivirus, [  --with-antivirus=av_name      Anti-virus daemon name: [avp OR sophos OR clamav OR trophie OR no] ],
+	antivirus=$withval,)
+
+        FOO=""
+        if [ (test "$antivirus" = "avp") || (test "$antivirus" = "AVP") ] ; then
+            FOO="AVP"
+        fi    
+        if [ (test "$antivirus" = "kav") || (test "$antivirus" = "KAV") ] ; then
+            FOO="KAV"
+        fi    
+        if [ (test "$antivirus" = "sophos") || (test "$antivirus" = "SOPHOS") ] ; then
+            FOO="SOPHOS"
+        fi    
+        if [ (test "$antivirus" = "clamav") || (test "$antivirus" = "CLAMAV") ] ; then
+            FOO="CLAMAV"
+        fi    
+        if [ (test "$antivirus" = "trophie") || (test "$antivirus" = "TROPHIE") ] ; then
+            FOO="TROPHIE"
+        fi    
+        if [ (test "$antivirus" = "drweb") || (test "$antivirus" = "DRWEB") ] ; then
+            FOO="DRWEB"
+        fi    
+        if [ (test "$antivirus" = "no") || (test "$antivirus" = "NO") ] ; then
+            FOO="NO"
+        fi    
+
+        while [ test -z "$FOO" ] ; do
+	    echo ""
+            echo "***********************************************"
+            echo "Choose Anti-Virus daemon"
+            echo "Enter 1, 2, 3, 4, 5, 6"
+            echo "1 Clamav (free)"
+            echo "2 Sophos sophie"
+            echo "3 Kaspersky (KAV)"
+	    echo "4 Trend Micro trophie"
+	    echo "5 Dr.Web"
+	    echo "6 Without Anti-Virus support"
+            read cc
+            case "$cc" in
+                [1]*)
+                    FOO="CLAMAV"
+                    ;;
+                [2]*)
+                    FOO="SOPHOS"
+                    ;;
+                [3]*)
+    		    while [ test -z "$FOO" ] ; do
+			echo ""
+        		echo "***********************************************"
+        		echo "Choose the version of Kaspersky Anti-Virus"
+        		echo "Enter 1, 2"
+        		echo "1 KAV < 4.5 (kavdaemon)"
+        		echo "2 KAV >= 4.5 (aveserver). New version"
+			read bb
+			case "$bb" in
+			    [1]*)
+				FOO="AVP"
+				;;
+			    [2]*)
+				FOO="KAV"    
+				;;
+                	    *)
+				echo ""
+				echo "You need to enter 1 or 2 here..."
+				echo ""
+				FOO=""
+				;;
+			esac	    
+                    done
+		    ;;
+                [4]*)
+                    FOO="TROPHIE"
+                    ;;
+                [5]*)
+                    FOO="DRWEB"
+                    ;;
+                [6]*)
+                    FOO="NO"
+                    ;;
+                *)
+                    echo ""
+                    echo "You need to enter 1, 2, 3, 4, 5 or 6 here..."
+                    echo ""
+                    FOO=""
+                    ;;
+            esac
+        done
+    if [ test "$FOO" = "AVP" ] ; then
+	AC_DEFINE(AVP, 1, [ AVP daemon. ])    
+        OBJS="$OBJS avpcomm.o" 
+        av_mess="Will use AVP Anti-Virus daemon version < 4.5. Set avpctl_filename=/var/run/AvpCtl in cgpav.conf"
+    fi    
+    if [ test "$FOO" = "KAV" ] ; then
+	AC_DEFINE(KAV, 1, [ KAV daemon. ])    
+        OBJS="$OBJS kavcomm.o" 
+        av_mess="Will use KAV Anti-Virus daemon version >= 4.5"
+    fi    
+    
+    if [ test "$FOO" = "SOPHOS" ] ; then
+	AC_DEFINE(SOPHOS, 1, [ Sophos daemon. ])    
+	AC_DEFINE(UNMIME_LIB, 1, [ UnMIME lib. ])    
+        OBJS="$OBJS $UNMIME sophoscomm.o"
+        av_mess="Will use Sophos Anti-Virus daemon sophie"
+    fi    
+    if [ test "$FOO" = "CLAMAV" ] ; then
+	AC_DEFINE(CLAMAV, 1, [ Clamav clamd daemon. ])    
+        OBJS="$OBJS clamdcomm.o "
+        av_mess="Will use Clamav Anti-Virus daemon clamd"
+    fi    
+    if [ test "$FOO" = "TROPHIE" ] ; then
+	AC_DEFINE(TROPHIE, 1, [ Trend Micro trophie daemon. ])    
+	AC_DEFINE(UNMIME_LIB, 1, [ UnMIME lib. ])    	
+        OBJS="$OBJS $UNMIME trophiecomm.o "
+        av_mess="Will use Trend Micro Anti-Virus daemon trophie"
+    fi    
+    if [ test "$FOO" = "DRWEB" ] ; then
+	AC_DEFINE(DRWEB, 1, [ Dr.Web daemon. ])    
+        OBJS="$OBJS drwebcomm.o"
+        av_mess="Will use Dr.Web Anti-Virus daemon drwebd"
+    fi    
+    if [ test "$FOO" = "NO" ] ; then
+	AC_DEFINE(NO_ANTIVIRUS, 1, [ Withous Anti-Virus daemon. ])    
+        av_mess="Will not use any Anti-Virus daemon"
+    fi    
+AC_MSG_RESULT([$av_mess])                            
+
+
+dnl SpamAssassin
+AC_ARG_WITH(spamassassin, 
+    [  --with-spamassassin=yes  Use SpamAssassin: [yes OR no] ],
+	spamassassin=$withval,)
+
+        FOO=""
+        if [ (test "$spamassassin" = "yes") || (test "$spamassassin" = "YES") ] ; then
+            FOO="SPAMD"
+        fi    
+        if [ (test "$spamassassin" = "no") || (test "$spamassassin" = "NO") ] ; then
+            FOO="NO"
+        fi    
+
+        while [ test -z "$FOO" ] ; do
+	    echo ""
+            echo "***********************************************"
+            echo "Enable SpamAssassin support"
+            echo "Enter 1 or 2"
+            echo "1 Enable  SpamAssassin support"
+	    echo "2 Disable SpamAssassin support"
+            read cc
+            case "$cc" in
+                [1]*)
+                    FOO="SPAMD"
+                    ;;
+                [2]*)
+                    FOO="NO"
+                    ;;
+                *)
+                    echo ""
+                    echo "You need to enter 1 or 2 here..."
+                    echo ""
+                    FOO=""
+                    ;;
+            esac
+        done
+    if [ test "$FOO" = "SPAMD" ] ; then
+	AC_DEFINE(SPAMD, 1, [ spamd daemon. ])    
+        OBJS="spamdcomm.o $OBJS"
+        spamassassin_mess="Will include SpamAssassin support"
+    fi    
+    if [ test "$FOO" = "NO" ] ; then
+	AC_DEFINE(NO_SPAMASSASSIN, 1, [ No SpamAssassin. ])    
+        spamassassin_mess="Will not use SpamAssassin"
+    fi    
+AC_MSG_RESULT([$spamassassin_mess])                            
+
+
+if [ (test "$FOO" = "SPAMD") ] ; then
+
+    dnl Database support for SpamAssassin
+    DB=""
+    
+    dnl MySQL library
+    AC_ARG_WITH(mysql, [ --with-mysql[[=DIR]] use libmysqlclient in DIR], [
+	if [ test "$withval" != "no" -a "$withval" != "yes" ]; then
+	    DB="MYSQL"
+	    MYSQL_DIRS=$withval
+	fi
+	if [ test "$withval" = "no" ] ; then
+	    DB="NO"
+	fi    
+    ])    
+        
+    dnl PostgreSQL library
+    AC_ARG_WITH(pgsql, [ --with-pgsql[[=DIR]] use libpq in DIR], [
+	if [ test "$withval" != "no" -a "$withval" != "yes" ]; then
+	    DB="PGSQL"
+	    PGSQL_DIRS=$withval
+	fi
+	if [ test "$withval" = "no" ] ; then
+	    DB="NO"
+	fi    
+    ])    
+
+    while [ test -z "$DB" ] ; do
+	    echo ""
+            echo "***********************************************"
+            echo "Use database for SpamAssassin user settings"
+            echo "Enter 1, 2 or 3"
+            echo "1 MySQL"
+	    echo "2 PostgreSQL"
+	    echo "3 Without database support"
+            read cc
+            case "$cc" in
+                [1]*)
+                    DB="MYSQL"
+                    ;;
+                [2]*)
+                    DB="PGSQL"
+                    ;;
+                [3]*)
+                    DB="NO"
+                    ;;
+                *)
+                    echo ""
+                    echo "You need to enter 1, 2 or 3 here..."
+                    echo ""
+                    FOO=""
+                    ;;
+            esac
+        done
+	
+    if [ test "$DB" = "MYSQL" ] ; then
+	if [ test -z "$MYSQL_DIRS" ] ; then
+	    MYSQL_DIRS="/usr /usr/local"
+	fi
+	for i in $MYSQL_DIRS; do
+	    if [ test -r "$i/include/mysql/mysql.h" ] ; then
+		MYSQL_DIR="$i"
+		MYSQL_INC_DIR="$i/include/mysql"
+	    elif [ test -r "$i/include/mysql.h" ] ; then
+		MYSQL_DIR="$i"
+		MYSQL_INC_DIR="$i/include"
+	    fi
+	done    
+	
+	if [ test -z "$MYSQL_DIR" ] ; then
+	    echo "configure: error: Cannot find MySQL header files under ${MYSQL_DIRS}" 
+	    echo "You might need to install libmysqlclient-dev package"
+	    exit 1
+	fi
+	
+	for i in lib lib/mysql ; do
+	    str="$MYSQL_DIR/$i/libmysqlclient.*"
+	    for j in `echo $str` ; do
+		if [ test -r "$j" ] ; then
+		    MYSQL_LIB_DIR="$MYSQL_DIR/$i"
+		    break 2
+		fi
+	    done
+	done
+
+	if [ test -z "$MYSQL_LIB_DIR" ] ; then
+	    echo "configure: error: Cannot find MySQL lib libmysqlclient.so or libmysqlclient.a" 
+	    exit 1
+	fi
+	    	    
+	AC_DEFINE(MYSQL_DB, 1, [ MySQL support. ])  
+    	OBJS="$OBJS mysqlcomm.o"
+	LIBS="$LIBS -lmysqlclient -lz"
+	INCLUDES="$INCLUDES -I${MYSQL_INC_DIR}"
+        if [ test "$MYSQL_LIB_DIR" != "/usr/lib" ] ; then
+	    LDFLAGS="$LDFLAGS -L${MYSQL_LIB_DIR}"
+        fi    
+	if [ test "$OS" = "SOLARIS" ] ; then
+	    LDFLAGS="$LDFLAGS -R${MYSQL_LIB_DIR}"
+	fi	 	
+        db_mess="Will use MySQL for SpamAssassin user settings"
+    fi
+    		        
+    if [ test "$DB" = "PGSQL" ] ; then
+	if [ test -z "$PGSQL_DIRS" ] ; then
+	    PGSQL_DIRS="/usr /usr/local /usr/local/pgsql"
+	fi
+	for i in $PGSQL_DIRS; do
+            for j in include include/pgsql include/postgres include/postgresql ""; do
+	        if [ test -r "$i/$j/libpq-fe.h" ] ; then
+		    PGSQL_DIR="$i"
+		    PGSQL_INC_DIR="$i/$j"
+	        fi
+	    done    
+	
+	    for j in lib lib/pgsql lib/postgres lib/postgresql ""; do
+                if [ test -f "$i/$j/libpq.so" || test -f "$i/$j/libpq.a" ] ; then
+                    PGSQL_LIB_DIR="$i/$j"
+                fi    
+            done
+        done    
+            
+        if [ test -z "$PGSQL_INC_DIR" ] ; then
+	    echo "configure: error: Cannot find PostgreSQL header file libpq-fe.h under ${PGSQL_DIRS}" 
+	    echo "You might need to install postgresql-dev package"
+	    exit 1
+	fi
+	
+	if [ test -z "$PGSQL_LIB_DIR" ] ; then
+	    echo "configure: error: Cannot find PostgreSQL lib lipq.so or libpq.a" 
+	    exit 1
+	fi
+	    	    
+	AC_DEFINE(PGSQL_DB, 1, [ PostgreSQL support. ])  
+    	OBJS="$OBJS pgsqlcomm.o"
+	LIBS="$LIBS -lpq"
+        if [ test "$PGSQL_INC_DIR" != "/usr/include" ] ; then
+	    INCLUDES="$INCLUDES -I${PGSQL_INC_DIR}"
+        fi    
+        if [ test "$PGSQL_LIB_DIR" != "/usr/lib" ] ; then
+	    LDFLAGS="$LDFLAGS -L${PGSQL_LIB_DIR}"
+        fi    
+	if [ test "$OS" = "SOLARIS" ] ; then
+	    LDFLAGS="$LDFLAGS -R${PGSQL_LIB_DIR}"
+	fi	 	
+        db_mess="Will use PostgreSQL for SpamAssassin user settings"    
+    fi    
+    if [ test "$DB" = "NO" ] ; then
+	AC_DEFINE(NO_DB, 1, [ No database. ])    
+        db_mess="Will not use database for SpamAssassin user settings"
+    fi    
+    AC_MSG_RESULT([$db_mess])                            
+fi
+
+
+dnl Path to the CommuniGate Pro root dir
+AC_MSG_CHECKING([cgpro_home])
+AC_ARG_WITH(cgpro_home,
+  [  --with-cgpro-home=PATH path to the CommuniGate Pro root dir [/var/CommuniGate]],
+  cgpro_home=$withval, cgpro_home=/var/CommuniGate)
+cgpro_home=`echo $cgpro_home | sed 's/\/$//'`
+AC_MSG_RESULT(["$cgpro_home"])
+AC_DEFINE_UNQUOTED(CGPRO_HOME, "$cgpro_home", [ Path to the CommuniGate Pro root dir. ]) 
+CGPRO_HOME="$cgpro_home"
+AC_SUBST(CGPRO_HOME)dnl
+
+
+dnl Path to the CommuniGate Pro Settings dir
+AC_MSG_CHECKING([cgpro_settings])
+AC_ARG_WITH(cgpro_settings,
+  [  --with-cgpro-settings=PATH  path to the CommuniGate Pro Settings dir [cgpro-home/Settings]],
+  cgpro_settings=$withval, cgpro_settings="$cgpro_home/Settings")
+cgpro_settings=`echo $cgpro_settings | sed 's/\/$//'`
+AC_MSG_RESULT(["$cgpro_settings"])
+AC_DEFINE_UNQUOTED(CGPRO_SETTINGS, "$cgpro_settings", [ Path to the CommuniGate Pro Settings dir. ]) 
+CGPRO_SETTINGS="$cgpro_settings"
+AC_SUBST(CGPRO_SETTINGS)dnl
+
+
+dnl Path to the CommuniGate Pro Submitted dir
+AC_MSG_CHECKING([cgpro_submitted])
+AC_ARG_WITH(cgpro_submitted,
+  [  --with-cgpro-submitted=PATH  path to the CommuniGate Pro Submitted dir [cgpro-home/Submitted]],
+  cgpro_submitted=$withval, cgpro_submitted="$cgpro_home/Submitted")
+cgpro_submitted=`echo $cgpro_submitted | sed 's/\/$//'`  
+AC_MSG_RESULT(["$cgpro_submitted"])
+AC_DEFINE_UNQUOTED(CGPRO_SUBMITTED, "$cgpro_submitted", [ Path to the CommuniGate Pro Submitted dir. ]) 
+
+
+AC_SUBST(CFLAGS)dnl
+AC_SUBST(DEFINES)dnl
+AC_SUBST(LDFLAGS)dnl
+AC_SUBST(INCLUDES)dnl
+AC_SUBST(OBJS)dnl
+
+
+AC_OUTPUT(Makefile)
+

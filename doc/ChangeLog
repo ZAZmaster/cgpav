@@ -1,0 +1,188 @@
+ 1.5  (01.07.2010)
+--A new action for SpamAssassin - addheaderjunk. Thanks to Philipp Hellmich.
+  When selected, it adds
+  the header 'X-Junk-Store' that can be used in the cgpro rules.
+  The higher the spam score, the more Xs will be added to the header.
+--Eliminated compiling the deMIME library for Clamav because it supports the cgpro format itself.
+  Though, it will eliminate the file extension checks.
+
+
+ 1.4  (01.09.2005)
+--As Clamav > 0.80 understands the Cgpro mail format,
+  saving attachments into temporary files and scanning them 
+  was disabled. 
+  Enable the ScanMail directive in the clamav.conf file
+--max_childs check was disabled for Solaris because
+  there is a problem with SIGCHLD.  
+  
+ 1.3c (20.08.2004)
+--Bugfixes: error with no OK in some situations, in memmove.
+--Save filename in the quarantine dir instead of seqnum.
+   
+
+ 1.3b (01.05.2004)
+--Bugfixes: mail header that a message was scanned by cgpav, 
+  plain and short MIME headers are extracted now (can increase load),
+  file permissions for files in the virus collection 640 now,
+  added -lz in configure to solve MySQL compiling error on some platforms
+--local_domains option to send notifications only to the users of your domain    
+--phrase in the recipient notifications that the sender's email can be forged
+
+
+ 1.3a (01.02.2004)
+-----
+--Several compilation bugfixes. (Mac OS X, Linux Cobalt).
+--Notifications can include headers of the original message 
+  (code by Eric Limpens).
+--When a message is not infected, not_infected_header can be added.   
+
+ 1.3  (01.12.2003)
+-----
+--Improved www-interface for SpamAssassin sql user profiles
+--Support for Dr.Web
+--Support for the standard spamd daemon with user profiles in MySQL
+  or PostgreSQL database. You need to install libmysqlclient-dev 
+  or postgresql-dev packages, or headers and libs.
+--No notifications about the viruses that use bogus sender e-mails, e.g. Worm.
+--Notifications only to the local users.  
+--Ability to exclude some domains from scanning. 
+
+ 1.2  (07.07.2003)
+-----
+--Added support for free Anti-Virus Clamav and Trend Micro
+--Instead of sophie-cgpav daemon the program uses the standard
+  sophie daemon from www.vanja.com
+--spamcgpd rewritten to work under Perl5.8
+--infected_extensions - regect some extensions, that viruses add  
+
+ 1.1  (03.11.2002)
+-----
+--This version of cgpav is for CommuniGate Pro >= 4.0
+
+--Filter installment in CommuniGate Pro >= 4.0 is different.
+  SETTINGS->General->Helpers
+  Mark Use Filter: cgpav
+  Log: All Info     Program Path: cgpav 
+  
+  SETTINGS->Rules
+  Priority Name  
+  10       cgpav
+  Click Edit
+  Message Size greater than 1024
+  Action          Parameters
+  ExternalFilter  cgpav
+
+--discard_infected and discard_spam in cgpav.conf are deprecated, use
+  infected_action and spam_action instead.
+  Actions are: none - do nothing, reject - bounce message,
+  discard - delete message silently, addheader - add headers of
+  infected and spam messages. End user can filter headers in
+  his mail program, for example, storing spam messages in special
+  folder.
+
+--spamcgpd now analyse the new parameter spamcgpd_action in database.
+  Users can change its value through the web interface.
+  Actions are:
+    0 - none (do nothing with message)
+    1 - default action on spam detection (admin defined)
+    2 - reject (send Undeliverable report to sender)
+    3 - discard (silently delete message)
+    4 - addheader (add mail header X-Spam-Status)
+    5 - addheader (add mail header X-Spam-Status) and store it to Spam folder
+    (must be created special Rule to filter this header)
+        
+--infected_header and spam_header. You can define your own headers for
+  infected and spam messages.
+
+--Squirrelmail spamassassin_sql plugin and php web-interface were updated 
+  to allow user to choose the spam action. He can add the rule to store
+  spam messages in IMAP folder named Spam in one click.
+  Look into config.php to adjust several options. You must create 
+  a special administrative account that has ability to update user
+  rules, create folders and change folder subscriptions.
+                 
+--New options for configure. Now it can work either without any antivirus
+  or without SpamAssassin.
+  --with-antivirus=av_name      Anti-virus daemon name: [avp OR sophos OR no]
+  --with-spamassassin=yes/no    Use SpamAssassin filter or not [yes]"
+  --with-cgpro-home=PATH        path to CommuniGate Pro's root dir 
+				[/var/CommuniGate]"
+  --with-cgpro-settings=PATH    path to CommuniGate Pro's Settings dir 
+				[cgpro-home/Settings]"
+  --with-cgpro-submitted=PATH   path to CommuniGate Pro's Submitted dir 
+				[cgpro-home/Submitted]"
+ 
+--New options extra_spam_score and extra_spam_action.
+  When a user hasn't defined any custom action (spamcgpd_action == 1),
+  and counted spam_score of a message is higher than extra_spam_score,
+  the extra_spam_action will be involved. Another words, when 
+  spam_score is low the filter will simply add the header, but when
+  it is high (e.g., domain is blacklisted) a message will be rejected.
+
+--Ukrainian language notifications
+
+ 1.0a  (20.07.2002)
+-----
+--Implementation of DISCARD command (cgpro >= 4b4), if enabled no
+  sender notifications at all. Options "discard_infected" and 
+  "discard_spam" in cgpav.conf
+
+--Processing of additional responses from AVP daemon: when virus scanning 
+  hasn't been completed and when AVP key file has expired.
+  
+--spamassassin_sql plugin for Squirrelmail webmail interface:
+  www.squirrelmail.org  
+
+--Option "spamcgpd_mail_aliases" in spamcgpd.conf Useful if you have
+  a mail domain with several aliases. Then a user's settings for 
+  SpamAssassin in the SQL database will be equal for the main domain and
+  all these aliases.
+
+--Solaris AVP response processing was simplified.
+ 
+
+ 1.0  (22.03.2002)
+-----
+Support for SpamAssassin anti-spam engine:
+spamcgpd - daemon that speeds up the spam checking process.
+
+Sending notifications for postmasters of domains.
+
+
+ 0.9  (10.03.2002)
+-----
+Configuration file cgpav.conf.
+
+Added configure and Makefile.in
+
+Timeouts in reading from anti-virus socket,
+when timeout reached the program says OK.
+
+Error counter: if the daemon doesn't respond, after
+MAX_ERRORS cgpav begin to answer OK to all queries.
+When the daemon starts cgpav begin to scan messages again.
+
+Support for sophos Anti-Virus: sophie daemon.
+
+Multilanguage notifications.
+
+
+ 0.8a  (04.01.2002)
+-----
+Notifications both to virus sender and recipients.
+
+Cleaning garbage in AVP daemon output.
+
+Sparc Solaris kavdaemon return codes are different from
+other OSes. Patched.
+
+
+ 0.7  (15.12.2001)
+-----
+First stable release. 
+
+Cleaned several serious bugs.    
+
+Alarms. If cgpav doesn't receive new queries within 
+defined period, it begin to send back several responses
+with OK.
