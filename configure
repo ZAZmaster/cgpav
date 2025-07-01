@@ -4274,11 +4274,12 @@ _ACEOF
     if  test "$FOO" = "CLAMAV"  ; then
 
 cat >>confdefs.h <<\_ACEOF
+#define UNMIME_LIB 1
 #define CLAMAV 1
 _ACEOF
 
 
-        OBJS="$OBJS clamdcomm.o "
+        OBJS="$OBJS $UNMIME clamdcomm.o "
         av_mess="Will use Clamav Anti-Virus daemon clamd"
     fi
     if  test "$FOO" = "TROPHIE"  ; then
