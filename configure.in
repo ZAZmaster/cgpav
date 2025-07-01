@@ -173,7 +173,8 @@ AC_ARG_WITH(antivirus, [  --with-antivirus=av_name      Anti-virus daemon name: 
     fi    
     if [ test "$FOO" = "CLAMAV" ] ; then
 	AC_DEFINE(CLAMAV, 1, [ Clamav clamd daemon. ])    
-        OBJS="$OBJS clamdcomm.o "
+	AC_DEFINE(UNMIME_LIB, 1, [ UnMIME lib. ])
+        OBJS="$OBJS $UNMIME clamdcomm.o "
         av_mess="Will use Clamav Anti-Virus daemon clamd"
     fi    
     if [ test "$FOO" = "TROPHIE" ] ; then
